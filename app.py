@@ -3,142 +3,202 @@
 import streamlit as st
 import pandas as pd
 import plotly.express as px
+import numpy as np
 
-# 📍 Page configuration
+# ---------------------------------------------
+# PAGE CONFIGURATION
+# ---------------------------------------------
 st.set_page_config(
-    page_title="Fashion Supply-Management Analytics",
+    page_title="Fashion Supply Chain Analytics Dashboard",
     page_icon="👗",
     layout="wide"
 )
 
-# Header
-st.title("Fashion Supply Chain Analytics Dashboard")
-st.markdown(
-    """
-    Explore product performance, regional insights, cost vs revenue,
-    and lead time distribution for your fashion-supply dataset.
-    """
-)
+# ---------------------------------------------
+# HEADER SECTION
+# ---------------------------------------------
+st.title("👗 Fashion Supply Chain Analytics Dashboard")
+st.markdown("""
+A powerful analytics interface to explore revenue, cost, logistics, and production performance 
+across the fashion supply network.
+""")
 
-# Sidebar — upload & filters
-st.sidebar.header("Upload Data & Filters")
+st.sidebar.header("📂 Upload Data & Filters")
 
-uploaded_file = st.sidebar.file_uploader("Upload a CSV file", type=["csv"])
-if uploaded_file is None:
-    st.info("📥 Please upload a CSV file to start the analysis.")
+# ---------------------------------------------
+# FILE UPLOAD
+# ---------------------------------------------
+uploaded_file = st.sidebar.file_uploader("Upload Supply Chain Dataset (CSV)", type=["csv"])
+
+if uploaded_file is not None:
+    df = pd.read_csv(uploaded_file)
+    df.columns = [c.strip().title() for c in df.columns]  # Normalize columns
+    st.success("✅ Dataset successfully uploaded!")
+else:
+    st.info("📁 Please upload your CSV file to begin.")
     st.stop()
 
-# Load data
-df = pd.read_csv(uploaded_file)
-# Normalize column names
-df.columns = [c.strip().title() for c in df.columns]
+# ---------------------------------------------
+# HANDLE EXPECTED COLUMNS
+# ---------------------------------------------
+expected_columns = [
+    'Product', 'Location', 'Transport', 'Revenue', 'Cost', 
+    'Stock Rate', 'Total Production', 'Defect Rate', 
+    'Orders', 'Lead Time', 'Shipping Cost', 'Date'
+]
 
-# Expected columns
-expected = ['Product Type', 'Region', 'Cost', 'Revenue', 'Lead Time', 'Date']
-missing = [c for c in expected if c not in df.columns]
-if missing:
-    st.warning(f"⚠️ Missing expected columns: {missing}")
-    st.info("Some charts/metrics may not be available due to missing columns.")
+missing_cols = [col for col in expected_columns if col not in df.columns]
+if missing_cols:
+    st.warning(f"⚠️ Missing expected columns in dataset: {missing_cols}")
+    st.info("Some metrics may not appear due to missing data.")
 
-# Convert types
+# Convert column types
 if 'Date' in df.columns:
     df['Date'] = pd.to_datetime(df['Date'], errors='coerce')
-for col in ['Cost', 'Revenue', 'Lead Time']:
+
+numeric_cols = ['Revenue', 'Cost', 'Stock Rate', 'Total Production', 
+                'Defect Rate', 'Orders', 'Lead Time', 'Shipping Cost']
+for col in numeric_cols:
     if col in df.columns:
         df[col] = pd.to_numeric(df[col], errors='coerce')
 
-# Sidebar filters
-st.sidebar.subheader("Filter Options")
+# ---------------------------------------------
+# SIDEBAR FILTERS
+# ---------------------------------------------
+st.sidebar.subheader("🔍 Filter Data")
 
-if 'Region' in df.columns:
-    regions = df['Region'].dropna().unique().tolist()
-    sel_regions = st.sidebar.multiselect("Select Region(s)", regions, default=regions)
-    df = df[df['Region'].isin(sel_regions)]
+if 'Product' in df.columns:
+    product_options = df['Product'].dropna().unique().tolist()
+    selected_products = st.sidebar.multiselect("Select Product(s)", product_options, default=product_options)
+    df = df[df['Product'].isin(selected_products)]
 
-if 'Product Type' in df.columns:
-    product_types = df['Product Type'].dropna().unique().tolist()
-    sel_products = st.sidebar.multiselect("Select Product Type(s)", product_types, default=product_types)
-    df = df[df['Product Type'].isin(sel_products)]
+if 'Location' in df.columns:
+    location_options = df['Location'].dropna().unique().tolist()
+    selected_locations = st.sidebar.multiselect("Select Location(s)", location_options, default=location_options)
+    df = df[df['Location'].isin(selected_locations)]
 
-if 'Date' in df.columns:
-    min_date = df['Date'].min()
-    max_date = df['Date'].max()
-    sel_range = st.sidebar.date_input("Select Date Range", [min_date, max_date])
-    if len(sel_range) == 2:
-        start_date, end_date = sel_range
-        df = df[(df['Date'] >= pd.to_datetime(start_date)) & (df['Date'] <= pd.to_datetime(end_date))]
+if 'Transport' in df.columns:
+    transport_options = df['Transport'].dropna().unique().tolist()
+    selected_transport = st.sidebar.multiselect("Select Transport Mode(s)", transport_options, default=transport_options)
+    df = df[df['Transport'].isin(selected_transport)]
 
-# KPI Metrics
-st.markdown("### Key Metrics")
-col1, col2, col3 = st.columns(3)
+# ---------------------------------------------
+# KPI METRICS
+# ---------------------------------------------
+st.markdown("### 💠 Key Performance Metrics")
+
+col1, col2, col3, col4 = st.columns(4)
 
 if 'Revenue' in df.columns:
-    total_revenue = df['Revenue'].sum()
-    col1.metric("Total Revenue", f"₹{total_revenue:,.0f}")
+    col1.metric("Total Revenue", f"₹{df['Revenue'].sum():,.0f}")
 
-if all(c in df.columns for c in ['Revenue', 'Cost']):
-    total_profit = (df['Revenue'] - df['Cost']).sum()
-    avg_profit = (df['Revenue'] - df['Cost']).mean()
-    col2.metric("Total Profit", f"₹{total_profit:,.0f}")
-    col3.metric("Avg Profit per Transaction", f"₹{avg_profit:,.0f}")
+if 'Cost' in df.columns:
+    col2.metric("Total Cost", f"₹{df['Cost'].sum():,.0f}")
+
+if 'Stock Rate' in df.columns:
+    col3.metric("Average Stock Rate", f"{df['Stock Rate'].mean():.2f}%")
+
+if 'Total Production' in df.columns:
+    col4.metric("Total Production Units", f"{df['Total Production'].sum():,.0f}")
+
+st.markdown("---")
+
+# ---------------------------------------------
+# KEY INSIGHTS SECTION
+# ---------------------------------------------
+st.subheader("📊 Key Insights Dashboard")
+
+insight_col1, insight_col2, insight_col3 = st.columns(3)
+
+if 'Revenue' in df.columns:
+    revenue_perf = df['Revenue'].mean()
+    insight_col1.success(f"💰 Revenue Performance\n\nAvg: ₹{revenue_perf:,.0f}")
+
+if 'Orders' in df.columns:
+    order_vol = df['Orders'].sum()
+    insight_col2.info(f"📦 Order Volume\n\nTotal Orders: {order_vol:,}")
+
+if all(c in df.columns for c in ['Cost', 'Revenue']):
+    cost_eff = (1 - (df['Cost'].sum() / df['Revenue'].sum())) * 100
+    insight_col3.success(f"💹 Cost Efficiency\n\n{cost_eff:.2f}%")
+
+if 'Defect Rate' in df.columns:
+    defect_ctrl = 100 - df['Defect Rate'].mean()
+    insight_col1.warning(f"⚙️ Defect Rate Control\n\nEfficiency: {defect_ctrl:.2f}%")
+
+if all(c in df.columns for c in ['Stock Rate', 'Orders']):
+    stock_turn = df['Orders'].sum() / (df['Stock Rate'].mean() + 1)
+    insight_col2.info(f"📈 Stock Turnover\n\nRate: {stock_turn:.2f}")
+
+if all(c in df.columns for c in ['Shipping Cost', 'Revenue']):
+    ship_eff = (df['Revenue'].sum() / df['Shipping Cost'].sum())
+    insight_col3.success(f"🚚 Shipping Cost Efficiency\n\nRatio: {ship_eff:.2f}")
 
 if 'Lead Time' in df.columns:
-    avg_lead = df['Lead Time'].mean()
-    col3.metric("Average Lead Time (days)", f"{avg_lead:.1f}")
+    lead_time = df['Lead Time'].mean()
+    insight_col1.info(f"⏱️ Manufacturing Lead Time\n\nAvg: {lead_time:.2f} days")
 
 st.markdown("---")
 
-# Visualizations
-st.subheader("Visual Insights")
+# ---------------------------------------------
+# ANALYSIS SECTION
+# ---------------------------------------------
+st.subheader("📈 Detailed Analysis & Charts")
 
-# Revenue Trend Over Time
+# Revenue Trend
 if 'Date' in df.columns and 'Revenue' in df.columns:
-    st.markdown("#### Revenue Trend Over Time")
-    fig_trend = px.line(df, x='Date', y='Revenue', color='Product Type' if 'Product Type' in df.columns else None,
-                        title="Revenue Over Time by Product Type")
-    st.plotly_chart(fig_trend, use_container_width=True)
+    st.markdown("#### 💹 Revenue Trend Over Time")
+    fig1 = px.line(df, x='Date', y='Revenue', color='Product', title="Revenue Over Time by Product")
+    st.plotly_chart(fig1, use_container_width=True)
 
-# Revenue by Region
-if 'Region' in df.columns and 'Revenue' in df.columns:
-    st.markdown("#### Revenue by Region")
-    region_sum = df.groupby('Region', as_index=False)['Revenue'].sum()
-    fig_region = px.bar(region_sum, x='Region', y='Revenue', color='Region',
-                        title="Revenue by Region")
-    st.plotly_chart(fig_region, use_container_width=True)
+# Cost vs Revenue Comparison
+if all(c in df.columns for c in ['Cost', 'Revenue', 'Product']):
+    st.markdown("#### 💰 Cost vs Revenue by Product")
+    fig2 = px.bar(df, x='Product', y=['Cost', 'Revenue'], barmode='group', title="Cost vs Revenue Comparison")
+    st.plotly_chart(fig2, use_container_width=True)
 
-# Profit by Product Type
-if all(c in df.columns for c in ['Product Type', 'Revenue', 'Cost']):
-    st.markdown("#### Profit by Product Type")
-    df['Profit'] = df['Revenue'] - df['Cost']
-    prod_profit = df.groupby('Product Type', as_index=False)['Profit'].sum()
-    fig_prod = px.bar(prod_profit, x='Product Type', y='Profit', color='Product Type',
-                      title="Profit by Product Type")
-    st.plotly_chart(fig_prod, use_container_width=True)
+# Location Performance
+if all(c in df.columns for c in ['Location', 'Revenue']):
+    st.markdown("#### 🌍 Location-Based Revenue Performance")
+    loc_df = df.groupby('Location', as_index=False)['Revenue'].sum()
+    fig3 = px.bar(loc_df, x='Location', y='Revenue', color='Location', title="Revenue by Location")
+    st.plotly_chart(fig3, use_container_width=True)
+
+# Transport Efficiency
+if all(c in df.columns for c in ['Transport', 'Shipping Cost']):
+    st.markdown("#### 🚛 Shipping Cost by Transport Mode")
+    fig4 = px.pie(df, names='Transport', values='Shipping Cost', title="Shipping Cost Distribution")
+    st.plotly_chart(fig4, use_container_width=True)
 
 # Lead Time Distribution
-if all(c in df.columns for c in ['Product Type', 'Lead Time']):
-    st.markdown("#### Lead Time Distribution by Product Type")
-    fig_lead = px.box(df, x='Product Type', y='Lead Time', color='Product Type',
-                      title="Lead Time by Product Type")
-    st.plotly_chart(fig_lead, use_container_width=True)
+if 'Lead Time' in df.columns and 'Product' in df.columns:
+    st.markdown("#### ⏳ Lead Time Distribution by Product")
+    fig5 = px.box(df, x='Product', y='Lead Time', color='Product', title="Lead Time Analysis")
+    st.plotly_chart(fig5, use_container_width=True)
 
-# Data Preview
-st.markdown("### Data Preview")
-st.dataframe(df.head())
+# Stock Rate vs Production
+if all(c in df.columns for c in ['Stock Rate', 'Total Production']):
+    st.markdown("#### 🧵 Stock Rate vs Total Production")
+    fig6 = px.scatter(df, x='Stock Rate', y='Total Production', color='Product',
+                      size='Revenue' if 'Revenue' in df.columns else None,
+                      title="Stock Rate vs Production Volume")
+    st.plotly_chart(fig6, use_container_width=True)
 
-# Insights Summary
-st.subheader("Insights Summary")
-if all(c in df.columns for c in ['Revenue', 'Cost', 'Product Type']):
-    highest = df.groupby('Product Type')['Profit'].sum().idxmax()
-    lowest = df.groupby('Product Type')['Profit'].sum().idxmin()
-    st.success(f"Highest profit product type: **{highest}**")
-    st.error(f"Lowest profit product type: **{lowest}**")
-
-if 'Region' in df.columns and 'Revenue' in df.columns:
-    best_region = df.groupby('Region')['Revenue'].sum().idxmax()
-    st.info(f"Top region by revenue: **{best_region}**")
+# Correlation Heatmap
+if len(df.select_dtypes(include='number').columns) > 1:
+    st.markdown("#### 📊 Correlation Heatmap")
+    corr = df.select_dtypes(include='number').corr()
+    fig7 = px.imshow(corr, text_auto=True, aspect="auto", title="Correlation between Key Variables")
+    st.plotly_chart(fig7, use_container_width=True)
 
 st.markdown("---")
-st.caption("Dashboard built with Streamlit | Inspired by Fashion Supply-Chain Analytics App")
+
+# ---------------------------------------------
+# FOOTER
+# ---------------------------------------------
+st.markdown("""
+🔗 **Reference Dashboard:** [Analytics for Fashion Supply Management](https://analyticsforfashionsupplymanagement.streamlit.app/)  
+👗 *Developed with Streamlit, Plotly, and Pandas for Fashion Supply Chain Intelligence*
+""")
 
 
