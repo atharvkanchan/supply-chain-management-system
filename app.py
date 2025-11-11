@@ -88,7 +88,7 @@ with col2:
                            x="Product", y="Inventory", title="Avg Inventory per Product", color="Product")
     st.plotly_chart(inventory_bar, use_container_width=True)
 
-# Row 2: Supplier Performance and Demand Forecast
+# Row 2: Supplier Performance and Demand Forecast (UPDATED CHART)
 col3, col4 = st.columns(2)
 with col3:
     st.subheader("Supplier Performance (Sales by Supplier)")
@@ -98,10 +98,13 @@ with col3:
 
 with col4:
     st.subheader("Demand Forecast vs Actual Sales")
-    forecast_vs_actual = filtered_df.melt(id_vars=["Date"], value_vars=["Sales", "Demand_Forecast"], 
-                                          var_name="Type", value_name="Value")
-    fig_forecast = px.line(forecast_vs_actual, x="Date", y="Value", color="Type", 
-                           title="Demand Forecast vs Actual Sales", markers=True)
+    # Updated: Grouped bar chart for better comparison
+    forecast_summary = filtered_df.groupby("Date")[["Sales", "Demand_Forecast"]].sum().reset_index()
+    forecast_melted = forecast_summary.melt(id_vars="Date", value_vars=["Sales", "Demand_Forecast"], 
+                                            var_name="Type", value_name="Value")
+    fig_forecast = px.bar(forecast_melted, x="Date", y="Value", color="Type", barmode="group", 
+                          title="Demand Forecast vs Actual Sales (Grouped Bars)", 
+                          labels={"Value": "Amount", "Type": "Metric"})
     st.plotly_chart(fig_forecast, use_container_width=True)
 
 # Additional: Scatter plot for Cost vs Sales
