@@ -1,230 +1,123 @@
-# =====================================================
-# app.py — Fashion Supply Chain Analytics Dashboard
-# Dataset: supply_chain_data.csv
-# Built with Streamlit + Plotly + Pandas
-# =====================================================
-
 import streamlit as st
 import pandas as pd
 import numpy as np
 import plotly.express as px
+import plotly.graph_objects as go
+from datetime import datetime, timedelta
 
-# ---------------------------------------
-# PAGE CONFIGURATION
-# ---------------------------------------
-st.set_page_config(
-    page_title="Fashion Supply Chain Analytics",
-    page_icon="🧵",
-    layout="wide",
-)
+# Set page config
+st.set_page_config(page_title="Fashion Supply Management Analytics", layout="wide")
 
-# ---------------------------------------
-# LOAD DATA
-# ---------------------------------------
-@st.cache_data
-def load_data():
-    data = pd.read_csv("supply_chain_data.csv")
-    return data
-
-df = load_data()
-
-# ---------------------------------------
-# PAGE HEADER
-# ---------------------------------------
-st.title("👗 Fashion Supply Chain Analytics Dashboard")
+# Title and description
+st.title("📊 Analytics for Fashion Supply Management")
 st.markdown("""
-#### Gain insights into production efficiency, logistics, and product performance.  
-Use the filters on the sidebar to explore different suppliers, regions, and categories.
+This dashboard provides insights into fashion supply chain operations, including sales trends, inventory management, supplier performance, and demand forecasting.
+Use the sidebar to filter data and explore key metrics.
 """)
-st.markdown("---")
 
-# ---------------------------------------
-# SIDEBAR FILTERS
-# ---------------------------------------
+# Generate mock data (replace with your real data source, e.g., CSV, database, or API)
+np.random.seed(42)
+dates = pd.date_range(start="2023-01-01", end="2023-12-31", freq="M")
+products = ["T-Shirts", "Jeans", "Dresses", "Shoes", "Accessories"]
+categories = ["Men", "Women", "Unisex"]
+suppliers = ["Supplier A", "Supplier B", "Supplier C", "Supplier D"]
+
+data = []
+for _ in range(500):
+    data.append({
+        "Date": np.random.choice(dates),
+        "Product": np.random.choice(products),
+        "Category": np.random.choice(categories),
+        "Supplier": np.random.choice(suppliers),
+        "Sales": np.random.randint(100, 1000),
+        "Inventory": np.random.randint(50, 500),
+        "Demand_Forecast": np.random.randint(80, 1200),
+        "Lead_Time_Days": np.random.randint(5, 30),
+        "Cost": np.random.uniform(10, 200)
+    })
+
+df = pd.DataFrame(data)
+df["Date"] = pd.to_datetime(df["Date"])
+
+# Sidebar filters
 st.sidebar.header("🔍 Filters")
-
-product_types = df["Product type"].dropna().unique()
-locations = df["Location"].dropna().unique()
-suppliers = df["Supplier name"].dropna().unique()
-transport_modes = df["Transportation modes"].dropna().unique()
-
-selected_product = st.sidebar.selectbox("Select Product Type", product_types)
-selected_location = st.sidebar.selectbox("Select Location", locations)
-selected_supplier = st.sidebar.selectbox("Select Supplier", suppliers)
-selected_transport = st.sidebar.selectbox("Select Transport Mode", transport_modes)
+selected_categories = st.sidebar.multiselect("Select Categories", options=df["Category"].unique(), default=df["Category"].unique())
+selected_products = st.sidebar.multiselect("Select Products", options=df["Product"].unique(), default=df["Product"].unique())
+date_range = st.sidebar.date_input("Select Date Range", [df["Date"].min(), df["Date"].max()])
+supplier_filter = st.sidebar.multiselect("Select Suppliers", options=df["Supplier"].unique(), default=df["Supplier"].unique())
 
 # Apply filters
 filtered_df = df[
-    (df["Product type"] == selected_product)
-    & (df["Location"] == selected_location)
-    & (df["Supplier name"] == selected_supplier)
-    & (df["Transportation modes"] == selected_transport)
+    (df["Category"].isin(selected_categories)) &
+    (df["Product"].isin(selected_products)) &
+    (df["Supplier"].isin(supplier_filter)) &
+    (df["Date"] >= pd.to_datetime(date_range[0])) &
+    (df["Date"] <= pd.to_datetime(date_range[1]))
 ]
 
-# ---------------------------------------
-# KPI SECTION
-# ---------------------------------------
-st.subheader("📊 Key Performance Indicators")
+# KPIs
+st.header("Key Performance Indicators (KPIs)")
+col1, col2, col3, col4 = st.columns(4)
+with col1:
+    total_sales = filtered_df["Sales"].sum()
+    st.metric("Total Sales", f"${total_sales:,.0f}")
+with col2:
+    avg_inventory = filtered_df["Inventory"].mean()
+    st.metric("Avg Inventory", f"{avg_inventory:.0f} units")
+with col3:
+    avg_lead_time = filtered_df["Lead_Time_Days"].mean()
+    st.metric("Avg Lead Time", f"{avg_lead_time:.1f} days")
+with col4:
+    total_cost = filtered_df["Cost"].sum()
+    st.metric("Total Cost", f"${total_cost:,.0f}")
 
-col1, col2, col3, col4, col5 = st.columns(5)
+# Charts section
+st.header("📈 Visualizations")
 
-col1.metric("Total Revenue ($)", f"{filtered_df['Revenue generated'].sum():,.2f}")
-col2.metric("Products Sold", f"{filtered_df['Number of products sold'].sum():,}")
-col3.metric("Avg Lead Time (Days)", f"{filtered_df['Lead times'].mean():.1f}")
-col4.metric("Avg Manufacturing Cost ($)", f"{filtered_df['Manufacturing costs'].mean():.1f}")
-col5.metric("Avg Defect Rate (%)", f"{filtered_df['Defect rates'].mean():.2f}")
+# Row 1: Sales Trends and Inventory Levels
+col1, col2 = st.columns(2)
+with col1:
+    st.subheader("Sales Trends Over Time")
+    sales_trend = filtered_df.groupby("Date")["Sales"].sum().reset_index()
+    fig_sales = px.line(sales_trend, x="Date", y="Sales", title="Monthly Sales", markers=True)
+    st.plotly_chart(fig_sales, use_container_width=True)
 
+with col2:
+    st.subheader("Inventory Levels by Product")
+    inventory_bar = px.bar(filtered_df.groupby("Product")["Inventory"].mean().reset_index(), 
+                           x="Product", y="Inventory", title="Avg Inventory per Product", color="Product")
+    st.plotly_chart(inventory_bar, use_container_width=True)
+
+# Row 2: Supplier Performance and Demand Forecast
+col3, col4 = st.columns(2)
+with col3:
+    st.subheader("Supplier Performance (Sales by Supplier)")
+    supplier_sales = filtered_df.groupby("Supplier")["Sales"].sum().reset_index()
+    fig_supplier = px.pie(supplier_sales, names="Supplier", values="Sales", title="Sales Distribution by Supplier")
+    st.plotly_chart(fig_supplier, use_container_width=True)
+
+with col4:
+    st.subheader("Demand Forecast vs Actual Sales")
+    forecast_vs_actual = filtered_df.melt(id_vars=["Date"], value_vars=["Sales", "Demand_Forecast"], 
+                                          var_name="Type", value_name="Value")
+    fig_forecast = px.line(forecast_vs_actual, x="Date", y="Value", color="Type", 
+                           title="Demand Forecast vs Actual Sales", markers=True)
+    st.plotly_chart(fig_forecast, use_container_width=True)
+
+# Additional: Scatter plot for Cost vs Sales
+st.subheader("Cost vs Sales Scatter Plot")
+fig_scatter = px.scatter(filtered_df, x="Cost", y="Sales", color="Category", size="Inventory", 
+                         title="Cost Efficiency Analysis", hover_data=["Product", "Supplier"])
+st.plotly_chart(fig_scatter, use_container_width=True)
+
+# Data Table
+st.header("📋 Filtered Data")
+st.dataframe(filtered_df)
+
+# Download option
+csv = filtered_df.to_csv(index=False)
+st.download_button(label="Download Filtered Data as CSV", data=csv, file_name="fashion_supply_data.csv", mime="text/csv")
+
+# Footer
 st.markdown("---")
-
-# ---------------------------------------
-# TABS LAYOUT
-# ---------------------------------------
-tab1, tab2, tab3, tab4 = st.tabs([
-    "💰 Sales & Performance",
-    "🏭 Production & Quality",
-    "🚚 Logistics & Cost",
-    "⚠️ Risk & Supplier Analysis"
-])
-
-# ---------------------------------------
-# TAB 1 – SALES & PERFORMANCE
-# ---------------------------------------
-with tab1:
-    st.subheader("💰 Sales Performance Overview")
-
-    colA, colB = st.columns(2)
-
-    with colA:
-        fig1 = px.bar(
-            filtered_df,
-            x="SKU",
-            y="Revenue generated",
-            color="Product type",
-            title="Revenue by SKU",
-            labels={"Revenue generated": "Revenue ($)"}
-        )
-        st.plotly_chart(fig1, use_container_width=True)
-
-    with colB:
-        fig2 = px.scatter(
-            filtered_df,
-            x="Price",
-            y="Number of products sold",
-            size="Revenue generated",
-            color="Product type",
-            hover_name="SKU",
-            title="Price vs Units Sold (Bubble = Revenue)"
-        )
-        st.plotly_chart(fig2, use_container_width=True)
-
-# ---------------------------------------
-# TAB 2 – PRODUCTION & QUALITY
-# ---------------------------------------
-with tab2:
-    st.subheader("🏭 Production Efficiency & Quality Metrics")
-
-    colC, colD = st.columns(2)
-
-    with colC:
-        fig3 = px.box(
-            filtered_df,
-            x="Product type",
-            y="Manufacturing costs",
-            color="Product type",
-            title="Manufacturing Cost Distribution by Product Type"
-        )
-        st.plotly_chart(fig3, use_container_width=True)
-
-    with colD:
-        fig4 = px.scatter(
-            filtered_df,
-            x="Manufacturing lead time",
-            y="Defect rates",
-            color="Inspection results",
-            size="Production volumes",
-            title="Defect Rates vs Manufacturing Lead Time"
-        )
-        st.plotly_chart(fig4, use_container_width=True)
-
-# ---------------------------------------
-# TAB 3 – LOGISTICS & COST
-# ---------------------------------------
-with tab3:
-    st.subheader("🚚 Logistics & Transportation Costs")
-
-    colE, colF = st.columns(2)
-
-    with colE:
-        fig5 = px.bar(
-            filtered_df,
-            x="Transportation modes",
-            y="Shipping costs",
-            color="Routes",
-            title="Shipping Costs by Transport Mode"
-        )
-        st.plotly_chart(fig5, use_container_width=True)
-
-    with colF:
-        fig6 = px.box(
-            filtered_df,
-            x="Location",
-            y="Costs",
-            color="Transportation modes",
-            title="Total Operational Costs by Location"
-        )
-        st.plotly_chart(fig6, use_container_width=True)
-
-# ---------------------------------------
-# TAB 4 – RISK & SUPPLIER ANALYSIS
-# ---------------------------------------
-with tab4:
-    st.subheader("⚠️ Supplier Risk & Lead Time Analysis")
-
-    risk_pivot = filtered_df.pivot_table(
-        index="Supplier name",
-        columns="Location",
-        values="Defect rates",
-        aggfunc="mean"
-    )
-
-    st.write("### 🧾 Average Defect Rate by Supplier & Location")
-    st.dataframe(risk_pivot.style.background_gradient(cmap="Reds"))
-
-    st.markdown("### 📉 Lead Time vs Defect Rate (Risk Plot)")
-    fig7 = px.scatter(
-        filtered_df,
-        x="Lead times",
-        y="Defect rates",
-        color="Supplier name",
-        size="Manufacturing costs",
-        title="Lead Time vs Defect Rate per Supplier"
-    )
-    st.plotly_chart(fig7, use_container_width=True)
-
-# ---------------------------------------
-# DOWNLOAD SECTION
-# ---------------------------------------
-st.markdown("---")
-st.subheader("📥 Download Filtered Data")
-
-csv = filtered_df.to_csv(index=False).encode("utf-8")
-st.download_button(
-    label="Download CSV Data",
-    data=csv,
-    file_name="filtered_supply_chain_data.csv",
-    mime="text/csv",
-)
-
-# ---------------------------------------
-# FOOTER
-# ---------------------------------------
-st.markdown("---")
-st.markdown("🧵 **Fashion Supply Chain Analytics Dashboard — Enhanced Edition**")
-st.caption("© 2025 AnalyticsForFashionSupplyManagement | Developed with Streamlit & Plotly")
-
-
-
-
-
-
-
+st.markdown("Dashboard built with Streamlit. Mock data used for demonstration – replace with real data (e.g., from ERP systems like SAP or databases). For customizations or integrations (e.g., ML forecasting), provide more details!")
