@@ -1,3 +1,8 @@
+# =============================================================
+# 📦 Fashion Supply Management System Dashboard
+# Built with Streamlit | Author: Aniket Dombale (2025)
+# =============================================================
+
 import streamlit as st
 import pandas as pd
 import numpy as np
@@ -6,17 +11,23 @@ from sklearn.linear_model import LinearRegression
 from datetime import datetime
 
 # ---------------- PAGE CONFIG ----------------
-st.set_page_config(page_title="Fashion Supply Management Analytics", layout="wide")
+st.set_page_config(page_title="Fashion Supply Management Dashboard", layout="wide")
 
-# ---------------- TITLE & INTRO ----------------
-st.title("📊 Analytics for Fashion Supply Management")
+# ---------------- TITLE & DESCRIPTION ----------------
+st.title("📊 Fashion Supply Chain Management Analytics")
 st.markdown("""
-This dashboard provides insights into fashion supply chain operations — including sales trends, inventory management, supplier performance, 
-and demand forecasting with future boom analysis.
-Use the sidebar to filter data and explore key metrics.
+Welcome to the **Fashion Supply Management System Dashboard**.  
+This application provides data-driven insights into:
+- 🧾 Sales Trends  
+- 📦 Inventory Levels  
+- 🤝 Supplier Performance  
+- 🔮 Demand Forecasting  
+- ⚙️ Smart Inventory Optimization  
+
+Use the sidebar to filter categories, products, suppliers, and date ranges.
 """)
 
-# ---------------- MOCK DATA (Replace with CSV/DB) ----------------
+# ---------------- DATA GENERATION (Replace with your CSV) ----------------
 np.random.seed(42)
 dates = pd.date_range(start="2023-01-01", end="2023-12-31", freq="M")
 products = ["T-Shirts", "Jeans", "Dresses", "Shoes", "Accessories"]
@@ -32,7 +43,6 @@ for _ in range(500):
         "Supplier": np.random.choice(suppliers),
         "Sales": np.random.randint(100, 1000),
         "Inventory": np.random.randint(50, 500),
-        "Demand_Forecast": np.random.randint(80, 1200),
         "Lead_Time_Days": np.random.randint(5, 30),
         "Cost": np.random.uniform(10, 200)
     })
@@ -47,7 +57,7 @@ selected_products = st.sidebar.multiselect("Select Products", df["Product"].uniq
 supplier_filter = st.sidebar.multiselect("Select Suppliers", df["Supplier"].unique(), default=df["Supplier"].unique())
 date_range = st.sidebar.date_input("Select Date Range", [df["Date"].min(), df["Date"].max()])
 
-# ---------------- APPLY FILTERS ----------------
+# Apply filters
 filtered_df = df[
     (df["Category"].isin(selected_categories)) &
     (df["Product"].isin(selected_products)) &
@@ -59,18 +69,20 @@ filtered_df = df[
 # ---------------- KPI SECTION ----------------
 st.header("📈 Key Performance Indicators (KPIs)")
 col1, col2, col3, col4 = st.columns(4)
+
 with col1:
     st.metric("Total Sales", f"${filtered_df['Sales'].sum():,.0f}")
 with col2:
-    st.metric("Avg Inventory", f"{filtered_df['Inventory'].mean():.0f} units")
+    st.metric("Average Inventory", f"{filtered_df['Inventory'].mean():.0f} units")
 with col3:
-    st.metric("Avg Lead Time", f"{filtered_df['Lead_Time_Days'].mean():.1f} days")
+    st.metric("Average Lead Time", f"{filtered_df['Lead_Time_Days'].mean():.1f} days")
 with col4:
     st.metric("Total Cost", f"${filtered_df['Cost'].sum():,.0f}")
 
-# ---------------- VISUALIZATIONS ----------------
-st.header("📊 Visualizations")
+# ---------------- VISUAL ANALYTICS ----------------
+st.header("📊 Visual Analytics")
 
+# Row 1: Sales Trend & Inventory
 col1, col2 = st.columns(2)
 with col1:
     st.subheader("Sales Trends Over Time")
@@ -81,76 +93,65 @@ with col1:
 with col2:
     st.subheader("Inventory Levels by Product")
     inventory_bar = px.bar(filtered_df.groupby("Product")["Inventory"].mean().reset_index(),
-                           x="Product", y="Inventory", title="Avg Inventory per Product", color="Product")
+                           x="Product", y="Inventory", title="Average Inventory per Product", color="Product")
     st.plotly_chart(inventory_bar, use_container_width=True)
 
+# Row 2: Supplier & Forecast Comparison
 col3, col4 = st.columns(2)
 with col3:
-    st.subheader("Supplier Performance (Sales by Supplier)")
+    st.subheader("Supplier Performance")
     supplier_sales = filtered_df.groupby("Supplier")["Sales"].sum().reset_index()
-    fig_supplier = px.pie(supplier_sales, names="Supplier", values="Sales", title="Sales Distribution by Supplier")
+    fig_supplier = px.pie(supplier_sales, names="Supplier", values="Sales",
+                          title="Sales Distribution by Supplier", hole=0.4)
     st.plotly_chart(fig_supplier, use_container_width=True)
 
 with col4:
     st.subheader("Demand Forecast vs Actual Sales")
-    forecast_summary = filtered_df.groupby("Date")[["Sales", "Demand_Forecast"]].sum().reset_index()
+    forecast_summary = filtered_df.groupby("Date")[["Sales"]].sum().reset_index()
+    forecast_summary["Demand_Forecast"] = forecast_summary["Sales"].rolling(2, min_periods=1).mean() * np.random.uniform(0.9, 1.1)
     forecast_melted = forecast_summary.melt(id_vars="Date", value_vars=["Sales", "Demand_Forecast"],
                                             var_name="Type", value_name="Value")
     fig_forecast = px.bar(forecast_melted, x="Date", y="Value", color="Type", barmode="group",
-                          title="Demand Forecast vs Actual Sales", labels={"Value": "Units", "Type": "Metric"})
+                          title="Demand Forecast vs Actual Sales")
     st.plotly_chart(fig_forecast, use_container_width=True)
 
-# ---------------- COST VS SALES ----------------
+# Cost vs Sales Scatter
 st.subheader("💰 Cost vs Sales Scatter Plot")
 fig_scatter = px.scatter(filtered_df, x="Cost", y="Sales", color="Category", size="Inventory",
                          title="Cost Efficiency Analysis", hover_data=["Product", "Supplier"])
 st.plotly_chart(fig_scatter, use_container_width=True)
 
-# ---------------- FORECASTING MODE SWITCH ----------------
+# ---------------- FUTURE ANALYTICS SECTION ----------------
 st.markdown("---")
 st.header("🔮 Future Analytics")
+forecast_mode = st.radio("Select Forecast Mode:", ["📈 Total Demand Forecast", "🚀 Product Boom Forecast"], horizontal=True)
 
-forecast_mode = st.radio(
-    "Select Forecast Mode:",
-    ["📈 Total Demand Forecast", "🚀 Product Boom Forecast"],
-    horizontal=True
-)
-
-# ---------------- MODE 1: TOTAL DEMAND FORECAST ----------------
+# ---- Mode 1: Total Demand Forecast ----
 if forecast_mode == "📈 Total Demand Forecast":
     ts = filtered_df.groupby(pd.Grouper(key="Date", freq="M"))["Sales"].sum().reset_index()
     ts = ts.sort_values("Date")
-
-    if len(ts) < 3:
-        st.warning("Not enough data for forecasting. Try selecting a wider date range.")
-    else:
+    if len(ts) >= 3:
         X = np.array(ts["Date"].map(datetime.toordinal)).reshape(-1, 1)
         y = np.array(ts["Sales"])
         lr = LinearRegression().fit(X, y)
+        future_dates = [ts["Date"].max() + pd.DateOffset(months=i) for i in range(1, 7)]
+        preds = lr.predict(np.array([d.toordinal() for d in future_dates]).reshape(-1, 1))
 
-        horizon = 6
-        last_date = ts["Date"].max()
-        future_dates = [last_date + pd.DateOffset(months=i) for i in range(1, horizon + 1)]
-        future_preds = lr.predict(np.array([d.toordinal() for d in future_dates]).reshape(-1, 1))
-
-        forecast_df = pd.DataFrame({"Date": future_dates, "Predicted_Sales": future_preds})
+        forecast_df = pd.DataFrame({"Date": future_dates, "Predicted_Sales": preds})
         combined = pd.concat([
             ts.rename(columns={"Sales": "Value"}).assign(Type="Actual"),
             forecast_df.rename(columns={"Predicted_Sales": "Value"}).assign(Type="Predicted")
         ])
-
         fig_future = px.line(combined, x="Date", y="Value", color="Type",
-                             title="Overall Future Demand Prediction (Next 6 Months)",
-                             markers=True)
+                             title="6-Month Future Demand Forecast", markers=True)
         st.plotly_chart(fig_future, use_container_width=True)
+        st.success(f"📦 Next Month Estimated Demand: **{int(preds[0])} units (approx.)**")
+    else:
+        st.warning("Not enough data for forecasting.")
 
-        next_month_demand = int(future_preds[0])
-        st.success(f"📦 Estimated total demand for next month: **{next_month_demand} units (approx.)**")
-
-# ---------------- MODE 2: PRODUCT BOOM FORECAST ----------------
+# ---- Mode 2: Product Boom Forecast ----
 elif forecast_mode == "🚀 Product Boom Forecast":
     st.subheader("🚀 Product-wise Boom Forecast (Next Month Prediction)")
-
     boom_data = []
     last_date = filtered_df["Date"].max()
     for product, group in filtered_df.groupby("Product"):
@@ -159,7 +160,6 @@ elif forecast_mode == "🚀 Product Boom Forecast":
             X_p = np.array(product_ts["Date"].map(datetime.toordinal)).reshape(-1, 1)
             y_p = np.array(product_ts["Sales"])
             model_p = LinearRegression().fit(X_p, y_p)
-
             next_month = last_date + pd.DateOffset(months=1)
             pred_next = model_p.predict([[next_month.toordinal()]])[0]
             last_sales = product_ts.iloc[-1]["Sales"]
@@ -167,36 +167,53 @@ elif forecast_mode == "🚀 Product Boom Forecast":
             boom_data.append({"Product": product, "Predicted_Sales": pred_next, "Growth_%": growth})
 
     boom_df = pd.DataFrame(boom_data).sort_values("Predicted_Sales", ascending=False)
-
     if not boom_df.empty:
-        fig_boom = px.bar(
-            boom_df, x="Product", y="Predicted_Sales", color="Growth_%",
-            text=boom_df["Growth_%"].apply(lambda x: f"{x:.1f}%"),
-            title="Top Products Expected to Boom Next Month",
-            color_continuous_scale="Tealgrn"
-        )
+        fig_boom = px.bar(boom_df, x="Product", y="Predicted_Sales", color="Growth_%",
+                          text=boom_df["Growth_%"].apply(lambda x: f"{x:.1f}%"),
+                          title="Top Products Expected to Boom Next Month", color_continuous_scale="Tealgrn")
         fig_boom.update_traces(textposition="outside")
         st.plotly_chart(fig_boom, use_container_width=True)
-
         top_boom = boom_df.iloc[0]
-        st.success(
-            f"🔥 **{top_boom['Product']}** is projected to be next month's boom product "
-            f"with estimated **{int(top_boom['Predicted_Sales'])} units** (+{top_boom['Growth_%']:.1f}% growth)."
-        )
+        st.success(f"🔥 {top_boom['Product']} projected to boom: **{int(top_boom['Predicted_Sales'])} units** (+{top_boom['Growth_%']:.1f}% growth).")
     else:
-        st.info("Not enough data to determine booming products.")
+        st.info("Not enough data for booming products.")
+
+# ---------------- INVENTORY OPTIMIZATION SYSTEM ----------------
+st.markdown("---")
+st.header("📦 Smart Inventory Optimization & Reorder Alerts")
+
+# Calculate reorder level = avg sales × (lead time / 7)
+inventory_df = filtered_df.groupby("Product").agg({
+    "Sales": "mean", "Inventory": "mean", "Lead_Time_Days": "mean"
+}).reset_index()
+inventory_df["Reorder_Level"] = (inventory_df["Sales"] * (inventory_df["Lead_Time_Days"] / 7)).round()
+inventory_df["Status"] = np.where(inventory_df["Inventory"] < inventory_df["Reorder_Level"], "⚠️ Low Stock", "✅ Sufficient")
+
+# Bar chart: Inventory vs Reorder Level
+fig_inv = px.bar(inventory_df, x="Product", y=["Inventory", "Reorder_Level"],
+                 barmode="group", title="Inventory vs Reorder Threshold")
+st.plotly_chart(fig_inv, use_container_width=True)
+
+# Reorder suggestions
+low_stock = inventory_df[inventory_df["Status"] == "⚠️ Low Stock"].copy()
+if not low_stock.empty:
+    st.warning("⚠️ The following products are below safe stock levels:")
+    low_stock["Suggested_Reorder_Qty"] = (low_stock["Reorder_Level"] * 1.5 - low_stock["Inventory"]).astype(int)
+    st.dataframe(low_stock[["Product", "Inventory", "Reorder_Level", "Suggested_Reorder_Qty", "Status"]])
+else:
+    st.success("✅ All products are above their safe stock levels.")
 
 # ---------------- DATA TABLE & DOWNLOAD ----------------
-st.header("📋 Filtered Data")
+st.header("📋 Filtered Dataset View")
 st.dataframe(filtered_df)
-
 csv = filtered_df.to_csv(index=False)
-st.download_button("Download Filtered Data as CSV", csv, "fashion_supply_data.csv", "text/csv")
+st.download_button("⬇️ Download Filtered Data as CSV", csv, "fashion_supply_data.csv", "text/csv")
 
 # ---------------- FOOTER ----------------
 st.markdown("---")
 st.markdown("""
-🧵 Dashboard built with **Streamlit**  
-💡 Replace mock data with your real CSV or database for live analytics.  
-📈 Features: Sales trends, supplier insights, inventory tracking, and future demand forecasting.
+🧵 **Fashion Supply Management Dashboard**  
+Built with ❤️ using Streamlit and Plotly  
+📈 Includes: Sales Analytics, Forecasting, Boom Analysis, and Inventory Optimization  
+💡 Future Scope: Prophet Forecasting | Automated Email Alerts | Supplier Optimization
 """)
