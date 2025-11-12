@@ -1,43 +1,32 @@
-# Supply Chain Management System  
+# 🇮🇳 India Supply Chain Management Dashboard (Streamlit)
 
-A complete **Supply Chain Management System (SCMS)** designed to handle inventory tracking, supplier management, demand forecasting, and analytics. This project demonstrates how data-driven automation and analytics can improve supply chain operations.  
-
----
-
-## 🧾 **Project Title**
-**Supply Chain Management System Using Machine Learning for Demand Forecasting**
+This Streamlit dashboard provides **data analytics**, **ML model training**, and **prediction capabilities** for the India Supply Chain dataset (2024–2025).
 
 ---
 
-## 🎯 **Objective**
-The main objective of this project is to **digitize and optimize the supply chain process** by integrating machine learning–based demand forecasting and automated inventory control.  
-The system aims to:
-- Reduce stockouts and overstocking.  
-- Improve supplier coordination and lead time management.  
-- Enable data-driven decision-making through real-time analytics.  
-- Provide an easily deployable, modular solution for small and medium enterprises.
+## 🚀 Features
+- Interactive data analytics and visualization
+- Automatic feature preprocessing and model training (RandomForest)
+- Single-row and batch prediction modes
+- Built-in feature importance chart
+- Support for custom CSV uploads and retraining inside the app
 
 ---
 
-## 🚀 **Features**
-- Real-time inventory management (CRUD operations)
-- Supplier and order tracking
-- Demand forecasting using ML models (Prophet/LSTM)
-- Reorder point and stockout alerts
-- Dashboard with KPIs and charts
-- REST API backend with JWT authentication
-- Docker-ready and easily deployable
+## 🧠 Model Overview
+The included `model.pkl` is a trained **RandomForestRegressor** pipeline.  
+It predicts `actual_sales` using multiple supply chain features such as:
+- Distance, demand forecast, units shipped, cost per unit, GST, carbon, etc.
+- Categorical features like city, transport mode, supplier, and carrier.
+
+Model metrics (on test data):
+- **MAE:** 1.7496  
+- **MSE:** 4.6492  
+- **R²:** 0.9542  
 
 ---
 
-## 🏗️ **Tech Stack**
-**Frontend:** React.js / Streamlit  
-**Backend:** Python (FastAPI) / Node.js (Express)  
-**Database:** PostgreSQL / SQLite (for local use)  
-**ML:** scikit-learn, Prophet, TensorFlow  
-**Other Tools:** Docker, Redis, Celery, GitHub Actions
-
----
-
-## 📁 **Project Structure**
-
+## 🧰 Requirements
+Install all dependencies using:
+```bash
+pip install -r requirements.txt
