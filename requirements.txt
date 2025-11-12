@@ -1,11 +1,11 @@
-streamlit==1.40.1
-pandas==2.2.3
-numpy==1.26.4
-matplotlib==3.9.2
-plotly==5.24.1
-scikit-learn==1.5.2
-joblib==1.4.2
-tensorflow==2.17.0
-seaborn==0.13.2
-altair==5.4.1
-requests==2.32.3
+# Clean requirements.txt for Streamlit Cloud
+streamlit
+pandas
+numpy
+matplotlib
+plotly
+scikit-learn
+joblib
+seaborn
+altair
+requests
