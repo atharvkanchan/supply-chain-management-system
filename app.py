@@ -1,8 +1,8 @@
 import streamlit as st
 import pandas as pd
 import numpy as np
-import matplotlib.pyplot as plt
 import seaborn as sns
+import matplotlib.pyplot as plt
 import joblib
 
 # -------------------- PAGE CONFIG --------------------
@@ -15,7 +15,12 @@ st.set_page_config(
 # -------------------- LOAD DATA --------------------
 @st.cache_data
 def load_data():
-    return pd.read_csv("india_supply_chain_2024_2025.csv")
+    df = pd.read_csv("india_supply_chain_2024_2025.csv")
+    
+    # Auto-clean numeric columns
+    for col in df.columns:
+        df[col] = pd.to_numeric(df[col], errors='ignore')
+    return df
 
 df = load_data()
 
@@ -26,7 +31,7 @@ st.markdown("""
     <br>
 """, unsafe_allow_html=True)
 
-# -------------------- KPIs --------------------
+# -------------------- KPI METRICS --------------------
 st.subheader("📊 Key Metrics")
 c1, c2, c3, c4 = st.columns(4)
 
@@ -35,7 +40,7 @@ c2.metric("Unique Products", df["Product"].nunique() if "Product" in df else "N/
 c3.metric("Avg Lead Time", round(df["Lead_Time"].mean(), 2) if "Lead_Time" in df else "N/A")
 c4.metric("Avg Demand", round(df["Demand"].mean(), 2) if "Demand" in df else "N/A")
 
-# -------------------- DATA PREVIEW --------------------
+# -------------------- DATA TABLE --------------------
 st.subheader("📁 Dataset Preview")
 st.dataframe(df.head(15), use_container_width=True)
 
@@ -43,42 +48,58 @@ st.dataframe(df.head(15), use_container_width=True)
 st.subheader("📈 Visual Insights")
 t1, t2, t3 = st.tabs(["📦 Demand Trend", "🏭 Supplier Analysis", "🔥 Correlation Heatmap"])
 
+# -------------------- DEMAND TREND --------------------
 with t1:
     if "Date" in df.columns and "Demand" in df.columns:
-        df["Date"] = pd.to_datetime(df["Date"])
-        df2 = df.sort_values("Date")
+        df["Date"] = pd.to_datetime(df["Date"], errors="coerce")
+        df2 = df.dropna(subset=["Date"]).sort_values("Date")
 
         fig, ax = plt.subplots(figsize=(12, 4))
         ax.plot(df2["Date"], df2["Demand"], linewidth=2)
         ax.set_title("Demand Trend Over Time")
         st.pyplot(fig)
     else:
-        st.warning("Date or Demand column missing.")
+        st.warning("⚠ 'Date' or 'Demand' column missing. Trend chart cannot be displayed.")
 
+# -------------------- SUPPLIER CHART --------------------
 with t2:
     if "Supplier" in df.columns and "Quantity" in df.columns:
-        supplier_stats = df.groupby("Supplier")["Quantity"].sum()
+        supplier_stats = df.groupby("Supplier")["Quantity"].sum().sort_values(ascending=False)
 
         fig, ax = plt.subplots(figsize=(12, 4))
         supplier_stats.plot(kind="bar", ax=ax)
         ax.set_title("Supplier Quantity Contribution")
         st.pyplot(fig)
     else:
-        st.warning("Supplier or Quantity column missing.")
+        st.warning("⚠ 'Supplier' or 'Quantity' column missing.")
 
+# -------------------- SAFE CORRELATION HEATMAP --------------------
 with t3:
-    fig, ax = plt.subplots(figsize=(12, 5))
-    sns.heatmap(df.corr(), annot=True, cmap="Blues")
-    st.pyplot(fig)
+    st.write("### 🔥 Correlation Heatmap")
 
-# -------------------- PREDICTION ENGINE --------------------
+    numeric_df = df.select_dtypes(include=[np.number])
+
+    if numeric_df.shape[1] < 2:
+        st.warning("⚠ Not enough numeric columns to generate a correlation heatmap.")
+    else:
+        corr = numeric_df.corr()
+
+        # Protect from NaN/Inf values
+        corr.replace([np.inf, -np.inf], np.nan, inplace=True)
+        corr.fillna(0, inplace=True)
+
+        fig, ax = plt.subplots(figsize=(12, 5))
+        sns.heatmap(corr, annot=True, cmap="Blues")
+        st.pyplot(fig)
+
+# -------------------- AI PREDICTION ENGINE --------------------
 st.subheader("🔮 AI Demand Prediction")
 
 try:
     model = joblib.load("model.pkl")
     st.success("Model Loaded Successfully!")
 except:
-    st.error("ERROR: model.pkl not found. Train the model using train_model.py")
+    st.error("❌ ERROR: model.pkl not found. Please train the model using train_model.py")
 
 numeric_cols = df.select_dtypes(include=[np.number]).columns.tolist()
 
@@ -91,16 +112,20 @@ for col in numeric_cols:
         with cols[i % 3]:
             inputs[col] = st.number_input(
                 f"{col}",
-                float(df[col].min()),
-                float(df[col].max()),
-                float(df[col].mean())
+                float(df[col].min()) if not pd.isna(df[col].min()) else 0,
+                float(df[col].max()) if not pd.isna(df[col].max()) else 100,
+                float(df[col].mean()) if not pd.isna(df[col].mean()) else 0
             )
         i += 1
 
 if st.button("Predict Demand"):
     inp = pd.DataFrame([inputs])
-    pred = model.predict(inp)[0]
-    st.success(f"📌 Predicted Demand: **{round(pred,2)} units**")
+    try:
+        pred = model.predict(inp)[0]
+        st.success(f"📌 Predicted Demand: **{round(pred,2)} units**")
+    except Exception as e:
+        st.error("❌ Prediction failed. Check model and input columns.")
+        st.error(str(e))
 
 # -------------------- FOOTER --------------------
 st.markdown("""
