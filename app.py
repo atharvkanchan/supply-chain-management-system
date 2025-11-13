@@ -18,7 +18,9 @@ and presents KPIs, visualizations, forecasting and inventory helpers.
 """)
 
 # Primary CSV path (local folder)
-CSV_PATH = "india_supply_chain_converted.csv"
+# Primary CSV path (local folder)
+# Updated to use cleaned deploy-ready dataset
+CSV_PATH = "supply_chain_clean_deploy_ready.csv"
 
 # Allow user to upload file if not found
 uploaded_file = st.sidebar.file_uploader("Upload Dataset (CSV)")
