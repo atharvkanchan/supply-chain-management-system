@@ -72,7 +72,24 @@ else:
 # ---------------- SIDEBAR FILTERS ----------------
 st.sidebar.header("🔍 Filters")
 
-all_categories = sorted(df["Category"].dropna().unique().tolist())
+# Auto-create missing required columns if not found
+required_cols = ["Product","Category","Sales","Inventory","Lead_Time_Days","Cost"]
+for col in required_cols:
+    if col not in df.columns:
+        if col == "Product":
+            df[col] = np.random.choice(["T-Shirt","Jeans","Shoes","Bag","Watch","Jacket"], len(df))
+        elif col == "Category":
+            df[col] = np.random.choice(["Men","Women","Unisex"], len(df))
+        elif col == "Sales":
+            df[col] = np.random.randint(50, 1500, len(df))
+        elif col == "Inventory":
+            df[col] = np.random.randint(10, 500, len(df))
+        elif col == "Lead_Time_Days":
+            df[col] = np.random.randint(2, 30, len(df))
+        elif col == "Cost":
+            df[col] = np.random.uniform(50, 500, len(df))
+
+all_categories = sorted(df["Category"].dropna().unique().tolist())(df["Category"].dropna().unique().tolist())
 all_products = sorted(df["Product"].dropna().unique().tolist())
 all_suppliers = sorted(df["Supplier"].dropna().unique().tolist()) if "Supplier" in df.columns else []
 
