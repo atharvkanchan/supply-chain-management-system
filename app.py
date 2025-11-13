@@ -17,7 +17,11 @@ This dashboard loads the converted dataset `india_supply_chain_converted.csv` (s
 and presents KPIs, visualizations, forecasting and inventory helpers.
 """)
 
+# Primary CSV path (local folder)
 CSV_PATH = "india_supply_chain_converted.csv"
+
+# Allow user to upload file if not found
+uploaded_file = st.sidebar.file_uploader("Upload Dataset (CSV)")
 
 @st.cache_data
 def load_data(path=CSV_PATH):
@@ -59,7 +63,11 @@ def load_data(path=CSV_PATH):
     return df
 
 # Load data
-df = load_data()
+# Load data with fallback to upload
+if uploaded_file is not None:
+    df = pd.read_csv(uploaded_file)
+else:
+    df = load_data()()
 
 # ---------------- SIDEBAR FILTERS ----------------
 st.sidebar.header("🔍 Filters")
