@@ -350,3 +350,4 @@ If you want, I will now:
 * 2. adapt the app to any column name mismatches automatically by inspecting your uploaded CSV now.
 
 I went ahead and assumed your uploaded CSV is named `data/india_supply_chain_2024_2025.csv` (you uploaded `/mnt/data/india_supply_chain_2024_2025.csv`). If you'd prefer a different path or want me to auto-inspect the CSV and adapt column-name mapping, tell me and I will update the files accordingly.
+.footer{ text-align:center; color:var(--muted); margin-top:18px }
