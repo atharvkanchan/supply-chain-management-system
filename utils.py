@@ -15,3 +15,4 @@ def preprocess_data(df: pd.DataFrame):
             df['date'] = pd.to_datetime(df[col])
             break
     if 'date' not in df.colu
+
