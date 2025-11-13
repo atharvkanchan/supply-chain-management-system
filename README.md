@@ -1,32 +1,22 @@
-# 🇮🇳 India Supply Chain Management Dashboard (Streamlit)
+# 📦 Supply Chain Management Dashboard
 
-This Streamlit dashboard provides **data analytics**, **ML model training**, and **prediction capabilities** for the India Supply Chain dataset (2024–2025).
+A complete professional Streamlit dashboard for supply chain analytics and AI-based demand forecasting.
 
 ---
 
 ## 🚀 Features
-- Interactive data analytics and visualization
-- Automatic feature preprocessing and model training (RandomForest)
-- Single-row and batch prediction modes
-- Built-in feature importance chart
-- Support for custom CSV uploads and retraining inside the app
+- Real-time data preview
+- KPI cards (Demand, Lead Time, Products)
+- Interactive charts
+- Supplier analytics
+- Correlation heatmap
+- AI demand prediction model
+- Clean UI + responsive design
 
 ---
 
-## 🧠 Model Overview
-The included `model.pkl` is a trained **RandomForestRegressor** pipeline.  
-It predicts `actual_sales` using multiple supply chain features such as:
-- Distance, demand forecast, units shipped, cost per unit, GST, carbon, etc.
-- Categorical features like city, transport mode, supplier, and carrier.
+## ▶️ Run Locally
 
-Model metrics (on test data):
-- **MAE:** 1.7496  
-- **MSE:** 4.6492  
-- **R²:** 0.9542  
-
----
-
-## 🧰 Requirements
-Install all dependencies using:
 ```bash
 pip install -r requirements.txt
+streamlit run app.py
